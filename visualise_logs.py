@@ -1,8 +1,9 @@
 # Do a visualisation of DeepRacer logs.
 
 import parse_logs as pl
-import pygame                   # 2d games engine.
-import imageio
+import cartesian_coordinates as cc
+import pygame                           # 2d games engine.
+import imageio                          # For making animated GIFs.
 
 
 # Convert coordinates from dictionary (as used by logs) to list of co-ordinates (as used by pygame).
@@ -11,7 +12,6 @@ def dict_coord_to_list(dict_coord):
     list_coord.append(dict_coord['x'])
     list_coord.append(dict_coord['y'])
     return list_coord
-
 
 class Track:
 
@@ -86,6 +86,12 @@ class Visualise:
 
         pygame.display.set_caption('DeepRacer Visualisation')
 
+    def bool_to_colour(self, truth):
+        if truth:
+            return self.GREEN
+        else:
+            return self.RED
+
     # Function to convert parm coords in track coordinate space into viewport coordinate space.
     def track_to_viewport(self, t_coords):
         [track_x, track_y] = t_coords
@@ -97,7 +103,6 @@ class Visualise:
         vp_y = self.viewport_size[1] - int(track_y * vp_y_space / (self.track.max_y - self.track.min_y)) - self.border
 
         return [vp_x, vp_y]
-
 
     def draw_track(self):
         prev = self.track.waypoints[-1]             # Initialise previous to last waypoint.
@@ -111,23 +116,84 @@ class Visualise:
             prev = wp
 
     def draw_car(self, state):
-        car = dict_coord_to_list(state)
-        if state['all_wheels_on_track']:
-            colour = self.GREEN
-        else:
-            colour = self.RED
+        car_vertices = {'tail': [-2.0, 0.0],
+                        'nose': [2.5, 0.0],
+                        'bl_hub': [-2.0, -1.0],
+                        'bl_tyre1': [-3.0, -1.0],
+                        'bl_tyre2': [-1.0, -1.0],
+                        'fl_hub': [2.0, -1.0],
+                        'fl_tyre1': [1.0, -1.0],
+                        'fl_tyre2': [3.0, -1.0],
+                        'br_hub': [-2.0, 1.0],
+                        'br_tyre1': [-3.0, 1.0],
+                        'br_tyre2': [-1.0, 1.0],
+                        'fr_hub': [2.0, 1.0],
+                        'fr_tyre1': [1.0, 1.0],
+                        'fr_tyre2': [3.0, 1.0]}
 
-        pygame.draw.circle(self.viewport, colour, self.track_to_viewport(car), 5)
+        car_edges = [('tail', 'nose'),
+                     ('bl_hub', 'br_hub'),
+                     ('fl_hub', 'fr_hub'),
+                     ('bl_tyre1', 'bl_tyre2'),
+                     ('fl_tyre1', 'fl_tyre2'),
+                     ('br_tyre1', 'br_tyre2'),
+                     ('fr_tyre1', 'fr_tyre2')]
 
+        car_coord = dict_coord_to_list(state)
 
-    def white_text(self, text, x, y):
-        textsurface = self.myfont.render(text, False, self.WHITE)
+        new_vertices = {}
+        for key in car_vertices:
+            val = car_vertices[key]
+
+            rotated = cc.rotate_around_origin(val, - state['heading'])
+
+            scaled = cc.scale(rotated, 0.1)                         # Tracks coordinate scale is tiny!
+            translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
+
+            # If this vertex is part of a front tyre, then it needs to be rotated around it's hub.
+            if key in ['fl_tyre1', 'fl_tyre2']:
+                translated = cc.rotate_around_a_point(translated, fl_hub_vertex, - state['steering_angle'])
+            elif key in ['fr_tyre1', 'fr_tyre2']:
+                translated = cc.rotate_around_a_point(translated, fr_hub_vertex, - state['steering_angle'])
+
+            # The front hub positions will be needed later, for rotating front tyres around,
+            # so set variables to remember them.
+            if key == 'fl_hub':
+                fl_hub_vertex = translated
+            elif key == 'fr_hub':
+                fr_hub_vertex = translated
+
+            new_vertices[key] = translated
+
+        for (k1, k2) in car_edges:
+            v1 = new_vertices[k1]
+            v2 = new_vertices[k2]
+
+            pygame.draw.line(
+                self.viewport,
+                self.bool_to_colour(state['all_wheels_on_track']),
+                self.track_to_viewport(v1),
+                self.track_to_viewport(v2),
+                2)
+
+    def draw_text(self, text, x, y, colour):
+        textsurface = self.myfont.render(text, False, colour)
         self.viewport.blit(textsurface, (x, y))
 
     def draw_info_box(self, state):
-        self.white_text('Speed = ' + str(state['speed']), 10, 10)
-        self.white_text('Heading = ' + '{0:.2f}'.format(state['heading']), 10, 35)
-        self.white_text('Steering Angle = ' + '{0:.2f}'.format(state['steering_angle']), 10, 60)
+        self.draw_text('Speed = ' + str(state['speed']), 10, 10, self.WHITE)
+        self.draw_text('Steps = ' + str(state['steps']), 10, 35, self.WHITE)
+        self.draw_text('Reward = ' + str(state['score']), 10, 60, self.WHITE)
+
+        self.draw_text('Near Centre Of Track', 10, 500, self.bool_to_colour(state['near_centre_of_track']))
+        self.draw_text('Quite Near Centre Of Track', 10, 525, self.bool_to_colour(state['quite_near_centre_of_track']))
+        self.draw_text('Heading In Right Direction', 10, 550, self.bool_to_colour(state['heading_in_right_direction']))
+        self.draw_text('Turning Hard', 10, 575, self.bool_to_colour(state['turning_hard']))
+
+        self.draw_text('Going Straight', 500, 500, self.bool_to_colour(state['going_straight']))
+        self.draw_text('Going Fast', 500, 525, self.bool_to_colour(state['going_fast']))
+        self.draw_text('Going Slowly', 500, 550, self.bool_to_colour(state['going_slowly']))
+        self.draw_text('Correcting Course', 500, 575, self.bool_to_colour(state['correcting_course']))
 
 
     def draw_all_elements(self, state):

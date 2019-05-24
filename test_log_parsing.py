@@ -1,3 +1,4 @@
+# Some tests of the log parsing code.
 
 import parse_logs as pl
 
