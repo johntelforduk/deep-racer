@@ -68,11 +68,15 @@ class Visualise:
         self.track = track
 
         # Define the colors we will use in RGB format.
-        self.BLACK = (0, 0, 0)
+        self.BLACK = (50, 50, 50)
         self.WHITE = (255, 255, 255)
-        self.BLUE = (0, 0, 255)
-        self.GREEN = (0, 255, 0)
-        self.RED = (255, 0, 0)
+        self.BLUE = pygame.Color(0, 0, 255,200)
+        self.GREEN = (0, 153, 0)
+        self.DARKGREEN = (222, 222, 222)
+        self.RED = pygame.Color(255, 0, 0,200)
+        self.YELLOW = (255, 255,0)
+        self.trackdrawn=0
+        self.track_width=45
 
         # Set the height and width of the viewport.
         self.viewport_size = [800, 600]
@@ -88,32 +92,74 @@ class Visualise:
 
     def bool_to_colour(self, truth):
         if truth:
-            return self.GREEN
+            return self.DARKGREEN
         else:
             return self.RED
 
     # Function to convert parm coords in track coordinate space into viewport coordinate space.
-    def track_to_viewport(self, t_coords):
+    def track_to_viewport(self, t_coords, should_add_border):
         [track_x, track_y] = t_coords
+		
+        border=0
+		
+        if should_add_border:
+             border=self.border
 
-        vp_x_space = self.viewport_size[0] - 2 * self.border    # Amount of space on x dim that can be rendered to.
-        vp_x = self.border + int(track_x * vp_x_space / (self.track.max_x - self.track.min_x))
+        vp_x_space = self.viewport_size[0] - 2 * border    # Amount of space on x dim that can be rendered to.
+        vp_x = border + int(track_x * vp_x_space / (self.track.max_x - self.track.min_x))
 
-        vp_y_space = self.viewport_size[1] - 2 * self.border    # Amount of space on y dim that can be rendered to.
-        vp_y = self.viewport_size[1] - int(track_y * vp_y_space / (self.track.max_y - self.track.min_y)) - self.border
+        vp_y_space = self.viewport_size[1] - 2 * border    # Amount of space on y dim that can be rendered to.
+        vp_y = self.viewport_size[1] - int(track_y * vp_y_space / (self.track.max_y - self.track.min_y)) - border
 
         return [vp_x, vp_y]
+   
 
     def draw_track(self):
+        
+        if self.trackdrawn:
+			# no need to draw everything again
+            self.viewport.blit(self.rendered_track, [0,0])
+            return
         prev = self.track.waypoints[-1]             # Initialise previous to last waypoint.
-
+        tw=self.track_to_viewport([self.track.max_x,self.track.min_y],0)
+        
+		 # need transparent surface
+        img = pygame.Surface(tw, pygame.SRCALPHA, 32)
+        img = img.convert_alpha()
+		
+		#draw track limits white using circles, Perfect pi distances for width - no silly scaling and you could have varable widths if needed 
+        for wp in self.track.waypoints:
+            line_from = dict_coord_to_list(prev)
+            pygame.draw.circle(img, self.WHITE, self.track_to_viewport(line_from,1), (self.track_width/2)+3)
+            prev = wp
+		#As above but this time overlay track in black	
+        for wp in self.track.waypoints:
+            line_from = dict_coord_to_list(prev)
+            # draw track over outer limits
+            pygame.draw.circle(img, self.BLACK, self.track_to_viewport(line_from,1), self.track_width/2)
+            prev = wp
+		# Finally draw center lines at intervals of wp/100 dashes	
+        count=0
+        paint=0
         for wp in self.track.waypoints:
             line_from = dict_coord_to_list(prev)
             line_to = dict_coord_to_list(wp)
-
-            pygame.draw.line(self.viewport, self.BLUE, self.track_to_viewport(line_from), self.track_to_viewport(line_to), 5)
-
+            count+=1
+            print(paint)
+            if count>=len(self.track.waypoints)/60 and paint<=len(self.track.waypoints)/60:
+                pygame.draw.line(img, self.YELLOW, self.track_to_viewport(line_from,1), self.track_to_viewport(line_to,1), 5)
+                paint+=1
+                print('paint '+ str( paint))
+                if (paint>=len(self.track.waypoints)/60):
+                    paint=0;
+                    count=0;
             prev = wp
+      
+       # copy track for rendering calls
+        self.rendered_track=pygame.transform.scale(img, (tw[0], tw[1]))
+      
+       # never do all that again
+        self.trackdrawn=1
 
     def draw_car(self, state):
         car_vertices = {'tail': [-2.0, 0.0],
@@ -142,26 +188,36 @@ class Visualise:
         car_coord = dict_coord_to_list(state)
 
         new_vertices = {}
+		
+		#get hub position
+        fl_hub_vertex=None
+        fr_hub_vertex=None
+        for key in car_vertices:
+            if key in ['fl_hub', 'fr_hub']:
+			    val = car_vertices[key]
+			    rotated = cc.rotate_around_origin(val, - state['heading'])
+			    scaled = cc.scale(rotated, 0.08)                         # Tracks coordinate scale is tiny!
+			    translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
+			    # The front hub positions will be needed later, for rotating front tyres around,
+			    # so set variables to remember them.
+			    if key == 'fl_hub':
+			        fl_hub_vertex = translated
+			    elif key == 'fr_hub':
+				fr_hub_vertex = translated
+			
         for key in car_vertices:
             val = car_vertices[key]
 
             rotated = cc.rotate_around_origin(val, - state['heading'])
 
-            scaled = cc.scale(rotated, 0.1)                         # Tracks coordinate scale is tiny!
+            scaled = cc.scale(rotated, 0.08)                         # Tracks coordinate scale is tiny!
             translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
-
+			
             # If this vertex is part of a front tyre, then it needs to be rotated around it's hub.
             if key in ['fl_tyre1', 'fl_tyre2']:
                 translated = cc.rotate_around_a_point(translated, fl_hub_vertex, - state['steering_angle'])
             elif key in ['fr_tyre1', 'fr_tyre2']:
                 translated = cc.rotate_around_a_point(translated, fr_hub_vertex, - state['steering_angle'])
-
-            # The front hub positions will be needed later, for rotating front tyres around,
-            # so set variables to remember them.
-            if key == 'fl_hub':
-                fl_hub_vertex = translated
-            elif key == 'fr_hub':
-                fr_hub_vertex = translated
 
             new_vertices[key] = translated
 
@@ -172,9 +228,9 @@ class Visualise:
             pygame.draw.line(
                 self.viewport,
                 self.bool_to_colour(state['all_wheels_on_track']),
-                self.track_to_viewport(v1),
-                self.track_to_viewport(v2),
-                2)
+                self.track_to_viewport(v1,1),
+                self.track_to_viewport(v2,1),
+                5)
 
     def draw_text(self, text, x, y, colour):
         textsurface = self.myfont.render(text, False, colour)
@@ -198,7 +254,7 @@ class Visualise:
 
     def draw_all_elements(self, state):
         # Clear the screen and set the screen background
-        self.viewport.fill(self.BLACK)
+        self.viewport.fill(self.GREEN)
 
         self.draw_track()
         self.draw_info_box(state)
