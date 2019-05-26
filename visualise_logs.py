@@ -77,7 +77,7 @@ class Visualise:
         self.RED = pygame.Color(255, 0, 0,200)
         self.YELLOW = (255, 255,0)
         self.trackdrawn=0
-        self.track_width=45
+        self.track_width=50
 
         # Set the height and width of the viewport.
         self.viewport_size = [800, 600]
@@ -270,24 +270,24 @@ class Visualise:
         self.draw_text('Going Straight', 500, 500, self.bool_to_colour(state['going_straight']))
         if not state['going_straight']:
             self.GS+=1
-        self.draw_pie(750,510,self.TH)
+        self.draw_pie(730,510,self.TH)
         self.draw_text('Going Fast', 500, 525, self.bool_to_colour(state['going_fast']))
         if not state['going_fast']:
             self.GF+=1
-        self.draw_pie(750,535,self.GF)
+        self.draw_pie(730,535,self.GF)
         self.draw_text('Going Slowly', 500, 550, self.bool_to_colour(state['going_slowly']))
         if not state['going_slowly']:
             self.GSL+=1
-        self.draw_pie(750,560,self.GSL)
+        self.draw_pie(730,560,self.GSL)
         self.draw_text('Correcting Course', 500, 575, self.bool_to_colour(state['correcting_course']))
         if not state['correcting_course']:
             self.CC+=1
-        self.draw_pie(750,585,self.CC)
+        self.draw_pie(730,585,self.CC)
 
     def draw_pie(self,posX,posY,val):
         # Center and radius of pie chart
         cx, cy, r = posX, posY, 10
-
+        self.draw_text(str(val), cx+12, cy-10,self.RED)
         # Background circle
         pygame.draw.circle(self.viewport, (0,0,0), (cx, cy), r)
 
