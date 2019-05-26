@@ -4,6 +4,7 @@ import parse_logs as pl
 import cartesian_coordinates as cc
 import pygame                           # 2d games engine.
 import imageio                          # For making animated GIFs.
+import math
 
 
 # Convert coordinates from dictionary (as used by logs) to list of co-ordinates (as used by pygame).
@@ -89,6 +90,15 @@ class Visualise:
         self.myfont = pygame.font.SysFont('Courier New', 20)
 
         pygame.display.set_caption('DeepRacer Visualisation')
+
+        self.NCOT =0
+        self.QNCOT=0
+        self.HIRD=0
+        self.TH=0
+        self.GS=0
+        self.GF=0
+        self.GSL=0
+        self.CC=0
 
     def bool_to_colour(self, truth):
         if truth:
@@ -196,7 +206,7 @@ class Visualise:
             if key in ['fl_hub', 'fr_hub']:
 			    val = car_vertices[key]
 			    rotated = cc.rotate_around_origin(val, - state['heading'])
-			    scaled = cc.scale(rotated, 0.08)                         # Tracks coordinate scale is tiny!
+			    scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
 			    translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
 			    # The front hub positions will be needed later, for rotating front tyres around,
 			    # so set variables to remember them.
@@ -210,7 +220,7 @@ class Visualise:
 
             rotated = cc.rotate_around_origin(val, - state['heading'])
 
-            scaled = cc.scale(rotated, 0.08)                         # Tracks coordinate scale is tiny!
+            scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
             translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
 			
             # If this vertex is part of a front tyre, then it needs to be rotated around it's hub.
@@ -242,14 +252,61 @@ class Visualise:
         self.draw_text('Reward = ' + str(state['score']), 10, 60, self.WHITE)
 
         self.draw_text('Near Centre Of Track', 10, 500, self.bool_to_colour(state['near_centre_of_track']))
+        if not state['near_centre_of_track']:
+            self.NCOT+=1
+        self.draw_pie(400,510,self.NCOT)
         self.draw_text('Quite Near Centre Of Track', 10, 525, self.bool_to_colour(state['quite_near_centre_of_track']))
+        if not state['quite_near_centre_of_track']:
+            self.QNCOT+=1
+        self.draw_pie(400,535,self.QNCOT)
         self.draw_text('Heading In Right Direction', 10, 550, self.bool_to_colour(state['heading_in_right_direction']))
+        if not state['heading_in_right_direction']:
+            self.HIRD+=1
+        self.draw_pie(400,560,self.HIRD)
         self.draw_text('Turning Hard', 10, 575, self.bool_to_colour(state['turning_hard']))
-
+        if not state['turning_hard']:
+            self.TH+=1
+        self.draw_pie(400,585,self.TH)
         self.draw_text('Going Straight', 500, 500, self.bool_to_colour(state['going_straight']))
+        if not state['going_straight']:
+            self.GS+=1
+        self.draw_pie(750,510,self.TH)
         self.draw_text('Going Fast', 500, 525, self.bool_to_colour(state['going_fast']))
+        if not state['going_fast']:
+            self.GF+=1
+        self.draw_pie(750,535,self.GF)
         self.draw_text('Going Slowly', 500, 550, self.bool_to_colour(state['going_slowly']))
+        if not state['going_slowly']:
+            self.GSL+=1
+        self.draw_pie(750,560,self.GSL)
         self.draw_text('Correcting Course', 500, 575, self.bool_to_colour(state['correcting_course']))
+        if not state['correcting_course']:
+            self.CC+=1
+        self.draw_pie(750,585,self.CC)
+
+    def draw_pie(self,posX,posY,val):
+        # Center and radius of pie chart
+        cx, cy, r = posX, posY, 10
+
+        # Background circle
+        pygame.draw.circle(self.viewport, (0,0,0), (cx, cy), r)
+
+        # Calculate the angle in degrees
+        angle = val*360/len(self.track.waypoints)
+
+        # Start list of polygon points
+        p = [(cx, cy)]
+
+        # Get points on arc
+        for n in range(0,angle):
+            x = cx + int(r*math.cos(n*math.pi/180))
+            y = cy+int(r*math.sin(n*math.pi/180))
+            p.append((x, y))
+        p.append((cx, cy))
+
+        # Draw pie segment
+        if len(p) > 2:
+            pygame.draw.polygon(self.viewport, self.RED, p)
 
 
     def draw_all_elements(self, state):
@@ -269,7 +326,14 @@ class Visualise:
         clock = pygame.time.Clock()
 
         while not done:
-
+            self.NCOT =0
+            self.QNCOT=0
+            self.HIRD=0
+            self.TH=0
+            self.GS=0
+            self.GF=0
+            self.GSL=0
+            self.CC=0
             for s in self.track.statuses:
 
                 # This limits the while loop to a max of 10 times per second.
