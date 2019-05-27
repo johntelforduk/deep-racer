@@ -1,6 +1,6 @@
 # deep-racer
 Car at start of training,
-![Start of training](https://github.com/johntelforduk/deep-racer/blob/master/screenshots/deepracer-end-of-training.gif)
+![Start of training](https://github.com/johntelforduk/deep-racer/blob/master/screenshots/deepracer-start-of-training.gif)
 
 
 Car at end of training,
