@@ -1,6 +1,12 @@
 # deep-racer
+Car at start of training,
+![Start of training](https://github.com/johntelforduk/deep-racer/blob/master/deepracer-start-of-training.gif)
 
-![results graph](https://s3-eu-west-1.amazonaws.com/chaotichaystack.com/deepracer-movie.gif)
+
+Car at end of training,
+![Start of training](https://github.com/johntelforduk/deep-racer/blob/master/deepracer-end-of-training.gif)
+
+
 For information about AWS DeepRacer see,
 
 https://aws.amazon.com/blogs/aws/the-aws-deepracer-league-virtual-circuit-is-now-open-train-your-model-today/
