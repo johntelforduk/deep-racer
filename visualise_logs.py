@@ -109,9 +109,9 @@ class Visualise:
     # Function to convert parm coords in track coordinate space into viewport coordinate space.
     def track_to_viewport(self, t_coords, should_add_border):
         [track_x, track_y] = t_coords
-		
+
         border=0
-		
+
         if should_add_border:
              border=self.border
 
@@ -125,30 +125,30 @@ class Visualise:
    
 
     def draw_track(self):
-        
+
         if self.trackdrawn:
-			# no need to draw everything again
+            # no need to draw everything again
             self.viewport.blit(self.rendered_track, [0,0])
             return
         prev = self.track.waypoints[-1]             # Initialise previous to last waypoint.
         tw=self.track_to_viewport([self.track.max_x,self.track.min_y],0)
-        
-		 # need transparent surface
+
+         # need transparent surface
         img = pygame.Surface(tw, pygame.SRCALPHA, 32)
         img = img.convert_alpha()
-		
-		#draw track limits white using circles, Perfect pi distances for width - no silly scaling and you could have varable widths if needed 
+
+        #draw track limits white using circles, Perfect pi distances for width - no silly scaling and you could have varable widths if needed
         for wp in self.track.waypoints:
             line_from = dict_coord_to_list(prev)
-            pygame.draw.circle(img, self.WHITE, self.track_to_viewport(line_from,1), (self.track_width/2)+3)
+            pygame.draw.circle(img, self.WHITE, self.track_to_viewport(line_from,1), int((self.track_width/2)+3))
             prev = wp
-		#As above but this time overlay track in black	
+        #As above but this time overlay track in black
         for wp in self.track.waypoints:
             line_from = dict_coord_to_list(prev)
             # draw track over outer limits
-            pygame.draw.circle(img, self.BLACK, self.track_to_viewport(line_from,1), self.track_width/2)
+            pygame.draw.circle(img, self.BLACK, self.track_to_viewport(line_from,1), int(self.track_width/2))
             prev = wp
-		# Finally draw center lines at intervals of wp/100 dashes	
+        # Finally draw center lines at intervals of wp/100 dashes
         count=0
         paint=0
         for wp in self.track.waypoints:
@@ -164,10 +164,10 @@ class Visualise:
                     paint=0;
                     count=0;
             prev = wp
-      
+
        # copy track for rendering calls
         self.rendered_track=pygame.transform.scale(img, (tw[0], tw[1]))
-      
+
        # never do all that again
         self.trackdrawn=1
 
@@ -198,23 +198,23 @@ class Visualise:
         car_coord = dict_coord_to_list(state)
 
         new_vertices = {}
-		
-		#get hub position
+
+        #get hub position
         fl_hub_vertex=None
         fr_hub_vertex=None
         for key in car_vertices:
             if key in ['fl_hub', 'fr_hub']:
-			    val = car_vertices[key]
-			    rotated = cc.rotate_around_origin(val, - state['heading'])
-			    scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
-			    translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
-			    # The front hub positions will be needed later, for rotating front tyres around,
-			    # so set variables to remember them.
-			    if key == 'fl_hub':
-			        fl_hub_vertex = translated
-			    elif key == 'fr_hub':
-				fr_hub_vertex = translated
-			
+                val = car_vertices[key]
+                rotated = cc.rotate_around_origin(val, - state['heading'])
+                scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
+                translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
+                # The front hub positions will be needed later, for rotating front tyres around,
+                # so set variables to remember them.
+                if key == 'fl_hub':
+                    fl_hub_vertex = translated
+                elif key == 'fr_hub':
+                    fr_hub_vertex = translated
+
         for key in car_vertices:
             val = car_vertices[key]
 
@@ -222,7 +222,7 @@ class Visualise:
 
             scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
             translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
-			
+
             # If this vertex is part of a front tyre, then it needs to be rotated around it's hub.
             if key in ['fl_tyre1', 'fl_tyre2']:
                 translated = cc.rotate_around_a_point(translated, fl_hub_vertex, - state['steering_angle'])
@@ -298,7 +298,7 @@ class Visualise:
         p = [(cx, cy)]
 
         # Get points on arc
-        for n in range(0,angle):
+        for n in range(0, int(angle)):
             x = cx + int(r*math.cos(n*math.pi/180))
             y = cy+int(r*math.sin(n*math.pi/180))
             p.append((x, y))
@@ -354,14 +354,14 @@ class Visualise:
 
     # For the first 10 statuses, draw them onscreen, and save each one to a screenshot .PNG file.
     # Then make an animated GIF out of the screenshots.
-    def make_gif(self):
+    def make_gif(self, screenshots_prefix, gif_filename):
         counter = 1
         filenames = []
 
-        for s in self.track.statuses[4:16]:                  # Take a nice set of statuses to make into the GIF.
+        for s in self.track.statuses[1:90]:                  # Take a nice set of statuses to make into the GIF.
             self.draw_all_elements(s)
 
-            screenshot_name = 'screenshots/screenshot' + format(counter, '02') + '.png'
+            screenshot_name = 'screenshots/' + screenshots_prefix + format(counter, '02') + '.png'
             pygame.image.save(self.viewport, screenshot_name)
 
             filenames.append(screenshot_name)
@@ -371,4 +371,4 @@ class Visualise:
         images = []
         for filename in filenames:
             images.append(imageio.imread(filename))
-        imageio.mimsave('screenshots/deepracer-movie.gif', images)
+        imageio.mimsave('screenshots/' + gif_filename, images)
