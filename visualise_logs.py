@@ -116,8 +116,8 @@ class Visualise:
         self.SMRWD=0 # small reward
        
 
-    	#switching things on and off
-    	self.show_reward_info=0
+        #switching things on and off
+        self.show_reward_info=0
 
         #graph surfaces
         self.grp = pygame.Surface([700,50], pygame.SRCALPHA, 32) #speed graph at top of screen
@@ -134,9 +134,9 @@ class Visualise:
     # Function to convert parm coords in track coordinate space into viewport coordinate space.
     def track_to_viewport(self, t_coords, should_add_border):
         [track_x, track_y] = t_coords
-		
+
         border=0
-		
+
         if should_add_border:
              border=self.border
 
@@ -152,29 +152,29 @@ class Visualise:
     def draw_track(self):
         
         if self.trackdrawn:
-	    # no need to draw everything again
+        # no need to draw everything again
             self.viewport.blit(self.rendered_track, [0,0])
             return
         prev = self.track.waypoints[-1]             # Initialise previous to last waypoint.
         tw=self.track_to_viewport([self.track.max_x,self.track.min_y],0)
         
-	# need transparent surface
+    # need transparent surface
         img = pygame.Surface(tw, pygame.SRCALPHA, 32)
         img = img.convert_alpha()
-		
-	# draw track limits in white using circles, perfect pi distances for width - no scaling required and you could have varable widths if needed 
+
+    # draw track limits in white using circles, perfect pi distances for width - no scaling required and you could have varable widths if needed
         for wp in self.track.waypoints:
             line_from = dict_coord_to_list(prev)
-            pygame.draw.circle(img, self.WHITE, self.track_to_viewport(line_from,1), (self.track_width/2)+4)
+            pygame.draw.circle(img, self.WHITE, self.track_to_viewport(line_from, 1), int((self.track_width/2)+4))
             #pygame.gfxdraw.aacircle(img, self.track_to_viewport(line_from,1)[0], self.track_to_viewport(line_from,1)[1], (self.track_width/2)+8, self.WHITE)
             prev = wp
-	# as above, but this time overlay track in blackish	
+    # as above, but this time overlay track in blackish
         for wp in self.track.waypoints:
             line_from = dict_coord_to_list(prev)
             # draw track over outer limits
-            pygame.draw.circle(img, self.BLACK, self.track_to_viewport(line_from,1), self.track_width/2)
+            pygame.draw.circle(img, self.BLACK, self.track_to_viewport(line_from,1), int(self.track_width/2))
             prev = wp
-	# Finally draw center lines at intervals of waypoints/80 dashes	
+    # Finally draw center lines at intervals of waypoints/80 dashes
         count=0
         paint=0
         for wp in self.track.waypoints:
@@ -224,23 +224,23 @@ class Visualise:
         car_coord = dict_coord_to_list(state)
 
         new_vertices = {}
-		
-		#get hub position
+
+        #get hub position
         fl_hub_vertex=None
         fr_hub_vertex=None
         for key in car_vertices:
             if key in ['fl_hub', 'fr_hub']:
-			    val = car_vertices[key]
-			    rotated = cc.rotate_around_origin(val, - state['heading'])
-			    scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
-			    translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
-			    # The front hub positions will be needed later, for rotating front tyres around,
-			    # so set variables to remember them.
-			    if key == 'fl_hub':
-			        fl_hub_vertex = translated
-			    elif key == 'fr_hub':
-				fr_hub_vertex = translated
-			
+                val = car_vertices[key]
+                rotated = cc.rotate_around_origin(val, - state['heading'])
+                scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
+                translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
+                # The front hub positions will be needed later, for rotating front tyres around,
+                # so set variables to remember them.
+                if key == 'fl_hub':
+                    fl_hub_vertex = translated
+                elif key == 'fr_hub':
+                    fr_hub_vertex = translated
+
         for key in car_vertices:
             val = car_vertices[key]
 
@@ -248,7 +248,7 @@ class Visualise:
 
             scaled = cc.scale(rotated, 0.07)                         # Tracks coordinate scale is tiny!
             translated = cc.translation(scaled, car_coord)          # Move the vertex to the car's coord on track.
-			
+
             # If this vertex is part of a front tyre, then it needs to be rotated around it's hub.
             if key in ['fl_tyre1', 'fl_tyre2']:
                 translated = cc.rotate_around_a_point(translated, fl_hub_vertex, - state['steering_angle'])
@@ -267,36 +267,36 @@ class Visualise:
                 self.track_to_viewport(v1,1),
                 self.track_to_viewport(v2,1),5)
     
-    	
-    	#show rewards based on speed and reward strength
-	
+
+        #show rewards based on speed and reward strength
+
     def show_rewards(self, state):
 
-    	
-    	car = dict_coord_to_list(state)
-    	carposX=self.track_to_viewport(car,1)[0];
+
+        car = dict_coord_to_list(state)
+        carposX=self.track_to_viewport(car,1)[0];
         carposY=self.track_to_viewport(car,1)[1];
-    	
-    	size=20
+
+        size=20
         
-    	score=state['score']
-    	if score<0.5 and score>0:
-    	   reward_color=self.LIGHTORANGE
+        score=state['score']
+        if score<0.5 and score>0:
+           reward_color=self.LIGHTORANGE
            self.SMRWD+=1
-    		
-    	elif score>0.5 and score<1:
-    	   reward_color=self.ORANGE
+
+        elif score>0.5 and score<1:
+           reward_color=self.ORANGE
            self.OKRWD+=1
-    		
-    	elif score<0:
-    	   reward_color=self.RED
+
+        elif score<0:
+           reward_color=self.RED
            self.BRWD+=1    	
-    	else:
-    	   reward_color=self.LIGHTGREEN
+        else:
+           reward_color=self.LIGHTGREEN
            self.GRWD+=1
         new_positions=self.rotate_line([ [carposX,carposY], [carposX,carposY+int((abs(state['score'])*(state['speed']*2+size))) ]], state['heading'])
-    	pygame.draw.line(self.rwd, reward_color, new_positions[0],new_positions[1] , 8)
-    	pygame.draw.circle(self.rwd,self.WHITE,[carposX,carposY],5) #racing line
+        pygame.draw.line(self.rwd, reward_color, new_positions[0],new_positions[1] , 8)
+        pygame.draw.circle(self.rwd,self.WHITE,[carposX,carposY],5) #racing line
         pygame.draw.circle(self.rwd,reward_color,new_positions[1],5) #endcap for dodgy bar
         
         # draw simple rewards TTD
@@ -411,7 +411,7 @@ class Visualise:
         p = [(cx, cy)]
 
         # Get points on arc
-        for n in range(0,angle):
+        for n in range(0, int(angle)):
             x = cx + int(r*math.cos(n*math.pi/180))
             y = cy+int(r*math.sin(n*math.pi/180))
             p.append((x, y))
