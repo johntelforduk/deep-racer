@@ -19,7 +19,14 @@ Install the following packages,
 ~~~
 pip install pygame
 pip install imageio
+pip install pytest
 ~~~
+See `requirements.txt` for details.
+#### Testing
+To run the unit tests,
+```
+pytest -v
+```
 #### Running
 To see a graphical animation of the car going round the track,
 ~~~
